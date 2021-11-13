@@ -1,29 +1,32 @@
 <template>
   <main>
     <v-app id="main-app-bcg" >
-      <Header></Header>
+    <!-- Header -->
+
+    <!-- Routes -->
     <transition name="fade" mode="in-out">
-      <keep-alive>
-        <router-view></router-view>
-      </keep-alive>
+        <router-view :key="$route.fullPath"></router-view>
     </transition>
+    <!-- Bottom Navigation -->
       <BottomNav class="fixed-bottom" />
     </v-app>
   </main>
 </template>
 
 <script>
-import Header from "./components/Header/Header";
 import BottomNav from "./components/BottomNav";
 export default {
-  data: function(){
-    return {
-      greeting: "hello!"
-    }
-  },
   components:{
-    Header,
     BottomNav
+  },
+  mounted(){
+     //fetches data from firebase
+          this.$http.get("https://mahmoudvue.firebaseio.com/dictionary.json")
+            .then(res =>{
+              res?.body && this.$store.dispatch("updateDataFromFirebase",res.body);
+            }).catch(err =>{
+              alert(err.message);
+            });
   }
 }
 </script>

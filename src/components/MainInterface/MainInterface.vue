@@ -1,38 +1,39 @@
 <template>
-    <section class="p-2">
+    <section id="mainInterface">
     <div class="upper-bar">
-            <v-container>
+            <span v-if="$store.getters.getCurrentLang === 'English US'" class="options-btn-container">
              <v-icon @click="handleSideDrawer(true)" class="options-btn">mdi-dots-vertical</v-icon>
-            </v-container>
+            </span>
       </div>
       <Backdrop />
       <SideDrawer/>      
         <div class="row app-layout w-100">
             <div class="col-lg-4 search-side">
-                <div v-on:submit.prevent="onSubmit" class="submission-form">
+                <form @submit="onSubmission" class="submission-form">
                     <input autofocus type="text" placeholder="Lookup word.." v-model="insertedText" class="text-input"/>
                     <div class="search-options"> 
-                      <button v-if="insertedText !== ''" @click.stop="insertedText=''" class="empty-input" >
+                      <span v-if="insertedText !== ''" @click.stop="insertedText=''" class="empty-input" >
                           <v-icon>mdi-close</v-icon>
-                      </button>
-                       <v-btn @click="onSubmit" type="submit" small
+                      </span>
+                       <v-btn type="submit" small
                                 class="ma-2 search-btn"
                                 :loading="loading"
                                 :disabled="loading || insertedText === ''"
                                 style="background:#3fb0ac; color:#fff;"
                                 light
                                 >
-                                <i class="fas fa-search fa-lg"/>
+                                <v-icon>mdi-magnify</v-icon>
                                 <template v-slot:loader>
                                     <span class="custom-loader">
-                                    <i class="fas fa-spinner fa-lg text-white"/>
+                                    <v-icon class="fas fa-spinner fa-lg text-white">mdi-spinner</v-icon>
                                     </span>
                                 </template>
                         </v-btn>
                         
-                    </div>
+                    </div> 
+                    </form>
                     <v-select
-                        v-model="lang"
+                        v-model="currLang"
                         :items="languageList"
                         menu-props="auto"
                         label="Select Language"
@@ -42,12 +43,12 @@
                         color="#3fb0ac"
                         class="select-style"
                         ></v-select>
-                </div>
-                <SuggestedWords v-if="this.lang === 'English US'"  class="hide-mobile" :newSearch="getDefinition" />
+
+                <SuggestedWords v-if="currLang === 'English US'"  class="hide-mobile" />
             </div>
             <div class="col-lg-7">
-                <Results :results="results" :newSearch="getDefinition" :currentWord="currentWord" :lang="lang" :loading="loading" />
-                <SuggestedWords v-if="this.lang === 'English US'" class="hide-desktop" :language="this.lang" :newSearch="getDefinition" />
+                <Results :results="results"/>
+                <SuggestedWords v-if="currLang === 'English US'" class="hide-desktop" :language="currLang" />
             </div>
             
         </div>
@@ -69,104 +70,39 @@ import SideDrawer from "./SideDrawer";
                 loading: false,
                 lang: "English US",
                 languageList: ["English US", "Spanish", "French" , "German", "Italian","Chinese (Simplified)", "Japanese", "Brazilian Portuguese","Turkish", "Hindi"],
-                results:[],
-                currentWord: "",
+                results: {}
             }
         },
+        computed: {
+          currLang: {
+            get(){
+               return this.$store.getters.getCurrentLang;
+            },
+            set(x){
+              this.$store.dispatch("changeCurrentLang", x);
+            }
+          },
+          newResults() {
+                return this.$store.getters.getResultsArr;
+          },
+        },
         methods:{
-            onSubmit(){
+            getDefinition(word){
+                this.$store.dispatch("searchThisWord", {word, isWOD: false});
+            },
+            onSubmission(e){
+              e.preventDefault();
                 this.getDefinition(this.insertedText);
-                // this.insertedText = "";
             },
             handleSideDrawer(boolean){
               this.$store.dispatch("handleSideDrawer",boolean);
-              // if(state === true){
-                // document.body.style.overflow-x = "hidden";
-              // }
-            },
-            getDefinition(word){ //Main function of the App
-                let currentLang; 
-                this.loading = true;
-                this.loader = "loading";
-            if(word){
-              this.$store.dispatch("updateData", {location: "history" , word: word});
-                switch(this.lang){
-                  case "English US":
-                    currentLang = "en";
-                  break;
-                  case "Spanish":
-                    currentLang = "es";
-                  break;
-                  case "French":
-                    currentLang = "fr";
-                  break;
-                  case "Brazilian Portuguese":
-                    currentLang = "pt-BR";
-                  break;
-                  case "Italian":
-                    currentLang = "it";
-                  break;
-                  case "German":
-                    currentLang = "de";
-                  break;
-                  case "Hindi":
-                    currentLang = "hi";
-                  break;
-                  case "Turkish":
-                    currentLang = "tr";
-                  break;
-                  case "Chinese (Simplified)":
-                    currentLang = "zh-CN";
-                  break;
-                  default:
-                    currentLang = "en";
-                  break;
-                }
-                  let refineWord = word.trim();
-                  
-                  word.match(/\s/) ? refineWord = word.toString().replace(/\s/g, "%20") : refineWord = word;
-                  word.match(/[-]/) ? refineWord = word.toString().replace(/[-]/g, "%2D") : refineWord = word;
-                  word.match(/[']/) ? refineWord = word.toString().replace(/[']/g, "%27") : refineWord = word;
-                    
-                  
-                  this.$http.get(`https://api.dictionaryapi.dev/api/v2/entries/${currentLang}/${refineWord.toLowerCase()}`)
-                        .then(res =>{
-                          if(res.body[0] && res.body.status !== 0 || res.body.status !== 404){
-                            this.results = res.body;
-                            this.currentWord = word;
-                            window.scrollTo(0,30);
-                            this.loader = null;
-                            this.loading = false;
-                          }
-                            
-                        })
-                        .catch(err=>{
-                          if(navigator.onLine && err.status !== 0 ){
-                                alert("Word is not found. Please make sure to type it correctly or choose the right language.");
-                                this.loader = null;
-                                  this.loading = false;
-                            
-                            }else{
-                              alert("You are offline. Please reconnect and try again!");
-                            }
-                          })
-                          
-              }else{
-                alert("The search field should not be empty");
-              }
-                
-            }            
+            },          
         },
         components:{
             SuggestedWords,
             Results,
             Backdrop,
             SideDrawer
-        },
-        computed:{
-            newSearchWord(){
-              return this.$store.state.word;
-            }
         },
          watch: {
             loader () {
@@ -175,31 +111,27 @@ import SideDrawer from "./SideDrawer";
                 setTimeout(() => (this[l] = false), 3000)
                 this.loader = null;
             },
-            newSearchWord(){
-              this.getDefinition(this.$store.state.word);
-              this.$router.push("/dictionary");
-              this.handleSideDrawer(false);
-            }
-              
+            newResults(results){
+                this.results = results || {};
+            },
+            currLang() {
+              this.results = {};
+             }
         },
         created(){
-          this.$store.dispatch("updateActiveBtn", 1);
-          if(this.lang === "English US"){
-            let randomNum = Math.floor((Math.random() * this.$store.state.suggestions.length) +1);
-            this.getDefinition(this.$store.state.suggestions[randomNum]);
+          if(this.currLang.toLowerCase() === "english us"){
+            let randomNum = Math.floor((Math.random() * this.$store.state.suggestions?.length) +1);
+              this.getDefinition(this.$store.state.suggestions[randomNum]);
           }
-          //fetches data from firebase
-          this.$http.get("https://mahmoudvue.firebaseio.com/dictionary.json")
-            .then(res =>{
-              this.$store.dispatch("updateDataFromFirebase",res.body);
-            }).catch(err =>{
-              console.log(err);
-            })
-
         }
     }
 </script>
 <style scoped>
+    #mainInterface{
+      display: grid;
+      place-items:center;
+      padding: 1rem 2rem;
+    }
     .app-layout{
         margin:30px auto 5px auto;
         gap:15px;
@@ -215,21 +147,22 @@ import SideDrawer from "./SideDrawer";
         box-shadow: 0 1px 14px rgba(0,0,0,0.1);
     }
     .submission-form{
-        padding-top:10px;
+      margin-top:10px;
+        width:100%;
         position:relative;
     }
     .search-mic, .empty-input{
-      
+      cursor:pointer;
       background-color:transparent ;
       padding:5px 5px ;
       border:none;
-      /* box-shadow:none; */
     }
     .search-options{
       display:flex;
-       position:absolute;
-        top:8%;
-        right:0px;
+      position:absolute;
+      top:50%;
+      right:-35px;
+      transform: translate(-50%,-50%);
     }
     .search-btn{
         border-radius:10px;
@@ -270,17 +203,7 @@ import SideDrawer from "./SideDrawer";
        height:35px;
        z-index:300;
    }
-   .options-btn{
-      background-color: rgba(0,0,0,0.2);
-      color:#fff !important;
-      /* padding:5px; */
-      width:33px;
-      height:33px;
-      border-radius:50%;
-      /* float:right; */
-      margin-right:15px;
-      cursor:pointer;
-   }
+  
   @-moz-keyframes loader {
     from {
       transform: rotate(0);
@@ -313,10 +236,19 @@ import SideDrawer from "./SideDrawer";
       transform: rotate(360deg);
     }
   }
+  @media only screen and (min-width: 1100px){
+    .search-side{
+        position: sticky;
+        top:1rem;
+    }
+  }
   @media only screen and (max-width:650px){
     .search-side{
       margin:8px;
       border:none;
+    }
+    #mainInterface{
+      padding: 0.5rem 0.1rem;
     }
   }
 </style>

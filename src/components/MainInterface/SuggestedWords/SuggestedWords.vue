@@ -20,7 +20,7 @@ export default {
         }
     },
     props:{
-        newSearch: [Function],
+        // newSearch: [Function],
         language: [String]
     },
     methods:{
@@ -28,6 +28,9 @@ export default {
            this.sortedWords = this.$store.state.suggestions.sort().map(item=>{
                 return item
             })
+        },
+        newSearch(word){
+            this.$store.dispatch("searchThisWord", {word, isWOD: false});
         }
     },
     created(){
@@ -38,7 +41,7 @@ export default {
 <style scoped>
     .word-list{
         /* margin-left:10px; */
-        padding:5px 9px;
+        padding:1rem 9px;
         list-style: none;
         height:300px;
         overflow-y: auto;

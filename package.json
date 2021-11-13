@@ -12,6 +12,7 @@
     "start": "webpack-dev-server --open --config webpack/webpack.config.dev.js"
   },
   "dependencies": {
+    "axios": "^0.24.0",
     "bootstrap": "^4.5.2",
     "core-js": "^3.6.4",
     "jquery": "^3.5.1",
@@ -31,7 +32,7 @@
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.2.0",
-    "@vue/cli-plugin-eslint": "~4.2.0",
+    "@vue/cli-plugin-eslint": "^4.5.15",
     "@vue/cli-service": "~4.2.0",
     "babel-eslint": "^10.0.3",
     "babel-preset-stage-2": "^6.24.1",
